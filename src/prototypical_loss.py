@@ -7,6 +7,9 @@ from torch.autograd import Variable
 from parser_util import get_parser
 
 class BiasLayer(Module):
+    '''
+    Define Bias Layer to implement Re-measure method
+    '''
     def __init__(self):
         super(BiasLayer, self).__init__()
         self.opt = get_parser().parse_args()
@@ -14,6 +17,10 @@ class BiasLayer(Module):
         self.alpha = nn.Parameter(torch.ones(self.opt.total_cls, requires_grad=True, device="cuda"))
         self.beta = nn.Parameter(torch.zeros(self.opt.total_cls, requires_grad=True, device="cuda"))
     def forward(self, x):
+        '''
+        Only the current stage data could be used to train. use torch.cat to achieve.
+        
+        '''
         x = x.to('cuda')
         start,end = x.size(1)-self.opt.class_per_stage,x.size(1)
         alpha,beta = torch.cat([self.alpha[0:start].detach(),self.alpha[start:end]],dim=0),torch.cat([self.beta[0:start].detach(),self.beta[start:end]],dim=0)

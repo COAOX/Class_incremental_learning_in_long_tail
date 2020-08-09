@@ -18,6 +18,9 @@ def conv3x3(in_planes, out_planes, stride=1):
 
 
 class BasicBlock(nn.Module):
+    '''
+    BasicBlock defined a sample layer
+    '''
     expansion = 1
 
     def __init__(self, inplanes, planes, stride=1, downsample=None):

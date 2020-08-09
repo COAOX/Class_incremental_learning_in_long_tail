@@ -5,6 +5,10 @@ import random
 from parser_util import get_parser
 
 class Cifar100:
+
+    '''
+    Cifar-100 dataset exampler which can serialize the dataset to 5 stage, and each stage contains 20 classes
+    '''
     def __init__(self):
         self.options = get_parser().parse_args()
         with open('cifar100/{}'.format(self.options.Data_file),'rb') as f:

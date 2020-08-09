@@ -94,7 +94,7 @@ def get_parser():
     parser.add_argument('--Bias_epoch',default = 30, type = int)
     parser.add_argument('--lossF',default = 'NCM', type = str)
     parser.add_argument('--pushR',default = 0.1, type = float)
-    parser.add_argument('--pillR',default = 0.1, type = float)
+    parser.add_argument('--pullR',default = 0.1, type = float)
     parser.add_argument('--centerR',default = 0.1, type = float)
     parser.add_argument('--mix',
                         action='store_true',help='enables mix')

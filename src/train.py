@@ -37,6 +37,9 @@ def init_seed(opt):
 
 
 def init_dataset(opt, mode):
+    '''
+    Initialize dataset
+    '''
     total_cls = opt.total_cls
     exemplar = Exemplar(max_size, total_cls)
     dataset = Cifar100()
@@ -51,6 +54,9 @@ def init_dataset(opt, mode):
 
 
 def init_sampler(opt, labels, mode):
+    '''
+    Initialize sampler
+    '''
     if 'train' in mode:
         classes_per_it = opt.classes_per_it_tr
         num_samples = opt.num_support_tr + opt.num_query_tr
@@ -65,6 +71,9 @@ def init_sampler(opt, labels, mode):
 
 
 def init_dataloader(opt, mode):
+    '''
+    Initialize the dataloader
+    '''
     dataset = init_dataset(opt, mode)
     sampler = init_sampler(opt, dataset.y, mode)
     dataloader = torch.utils.data.DataLoader(dataset, batch_sampler=sampler)
@@ -142,30 +151,13 @@ def testf(opt, test_dataloader, model, prototypes, n_per_stage, biasLayer):
 
 
     return avg_acc
-'''
-def compute_NCM_img_id(input,target,n_support, num_support_NCM):
-    target_cpu = target.to('cpu')
-    input_cpu = input.to('cpu')
-    classes = torch.unique(target_cpu)
-    def supp_idxs(c):
-        return target_cpu.eq(c).nonzero()[:n_support].squeeze(1)
-    def class_img(c):
-        return target_cpu.eq(c).nonzero().squeeze(1)
-    support_idxs = list(map(supp_idxs, classes))
-    prototypes = torch.stack([input_cpu[idx_list].mean(0) for idx_list in support_idxs])
-    NCM = torch.zeros([1,num_support_NCM]).long()
-    for i,c in enumerate(classes):
-        c_img = class_img(c)
-        d = input_cpu.size(1)
-        n = len(c_img)
-        dis = torch.pow(input_cpu[c_img]-prototypes[i].expand(n,d),2).sum(1)
-        ord_dis,index = torch.sort(dis,dim=0,descending=False)
-        img_index = c_img[index]
-        NCM = torch.cat([NCM,img_index[:num_support_NCM].unsqueeze(0)],dim=0)
-    return NCM[1:]
-'''
+
 
 def compute_NCM_img_id(input_cpu,target,n_support, num_support_NCM):
+    '''
+    Calculate the id of the picture closest to the center of the type in the NCM classification method
+    '''
+
     target_cpu = target
     classes = torch.unique(target_cpu)
     def supp_idxs(c):
@@ -190,6 +182,9 @@ def compute_NCM_img_id(input_cpu,target,n_support, num_support_NCM):
 
 
 def get_mem_tr(support_imgs,num_support_NCM):
+    '''
+    Extract pictures in memory that can be used for training
+    '''
     if support_imgs is None:
         return [],[]
     mem_img = torch.split(support_imgs,num_support_NCM,dim=0) # n_class x n_support_NCM x img.size
@@ -303,6 +298,10 @@ def train(opt, model, optim, lr_scheduler, biasLayer, bisoptim, bias_scheduler):
                 loss, acc, n_prototypes= loss_fn(model_output, target=y, opt=opt, 
                     old_prototypes=None if prototypes is None else prototypes.detach(), inc_i=inc_i,biasLayer=biasLayer,t_prototypes=None if t_prototypes is None else t_prototypes.detach())
                 loss_distill = 0
+                '''
+                this section use memory data to compute a center that fix the imbalance of training data
+
+                '''
                 if not prototypes is None:
                     for memx,memy in mem_data:
                         dx,dy = memx.to(device), memy.squeeze().to(device)
@@ -312,6 +311,10 @@ def train(opt, model, optim, lr_scheduler, biasLayer, bisoptim, bias_scheduler):
                         nm = end-start
                         mx,my = dx[start:end],dy[start:end]
                         imsize1,imsize2,imsize3 = mx.size(1),mx.size(2),mx.size(3)
+                        '''
+                        Sample Mix
+                        If the caller specified mix parameter.
+                        '''
                         if opt.mix:
                             mix_mem = mx.unsqueeze(1).expand(nm,nt,imsize1,imsize2,imsize3)
                             mix_tr = x[:nt].unsqueeze(0).expand(nm,nt,imsize1,imsize2,imsize3)
@@ -336,6 +339,10 @@ def train(opt, model, optim, lr_scheduler, biasLayer, bisoptim, bias_scheduler):
                 train_loss.append(loss.item())
                 train_acc.append(acc.item())
                 t_prototypes = n_prototypes
+            '''
+            This is done in order to make the model train quickly in the previous stages, 
+            and gradually reduce epoch in the later stages to avoid over-fitting.
+            '''
             if epoch +1== opt.epochs-2*inc_i:
                 for x,y in NCM_dataloader:
                     cx,y = x.to(device),y.squeeze().to(device)
@@ -471,14 +478,6 @@ def main():
 
 def dense_to_one_hot(labels_dense, num_classes):
     """Convert class labels from scalars to one-hot vectors."""
-    #label_dense = torch.LongTensor(np.array([labels_dense],dtype=float).T)
-    #label_dense = torch.LongTensor(len(labels_dense),1).random_()%num_classes
-    #label_dense = label_dense.transpose(1,0)
-    #print(f"label_dense: {label_dense}")
-    #y_onehot = torch.FloatTensor(len(label_dense), num_classes)
-    #y_onehot.zero_()
-    #y_onehot.scatter_(1, label_dense, 1)
-    #print(f"onehot: {y_onehot}")
     return labels_dense
 
 def proto_disti(model_output,target,old_prototypes,num_support_tr):
@@ -500,6 +499,12 @@ def proto_disti(model_output,target,old_prototypes,num_support_tr):
     return -torch.mean(torch.sum(pre_p * p, dim=1))*T*T
 
 def proto_distill(model_output,target,old_prototypes,opt,n_prototypes,inc_i,centerR):
+    '''
+    func proto_distill defines how to reduce the position change of various prototypes 
+    in feature space during the training process.
+
+    By using push and pull method
+    '''
     target_cpu = target.to('cpu')
     input_cpu = model_output.to('cpu')
     def supp_idxs(c):
@@ -515,11 +520,11 @@ def proto_distill(model_output,target,old_prototypes,opt,n_prototypes,inc_i,cent
         print(new_prototypes.size())
         print(old_prototypes.size())
         print(classes)
-    old_center =  old_prototypes.mean(0)
+    old_center =  old_prototypes.mean(0) # last prototype center
     n_center = n_prototypes.mean(0)
     max_dis = torch.pow(old_prototypes -old_center.unsqueeze(0).expand_as(old_prototypes),2).sum(1).max()
     n_center_dis = n_prototypes - old_center.unsqueeze(0).expand_as(n_prototypes)
-    center_loss = (R*max_dis - torch.pow(old_center - n_center,2).sum()).pow(2).rsqrt()
+    center_loss = (R*max_dis - torch.pow(old_center - n_center,2).sum()).pow(2).rsqrt() # compute loss function
     pro_dis = euclidean_dist(new_prototypes,old_prototypes)/T
     n_dis = euclidean_dist(n_prototypes,old_prototypes)/T
     n_dis = torch.where(n_dis==0,torch.full_like(n_dis, 0.0001),n_dis)
@@ -531,10 +536,10 @@ def proto_distill(model_output,target,old_prototypes,opt,n_prototypes,inc_i,cent
     #self_nind = self_ind.eq(0)
     #loss_push = torch.masked_select(torch.rsqrt(torch.pow(pro_dist,2)),self_nind.bool()).mean()
     loss_push = torch.rsqrt(n_dis).sum(1).mean()
-    loss_pill = torch.masked_select(F.softmax(pro_dis,dim=1),self_ind.bool()).mean()
+    loss_pull = torch.masked_select(F.softmax(pro_dis,dim=1),self_ind.bool()).mean()
     print("#######")
     print(center_loss)
-    return opt.pillR*(T**inc_i)*loss_pill+opt.pushR/(inc_i+1)*loss_push+centerR*center_loss
+    return opt.pullR*(T**inc_i)*loss_pull+opt.pushR/(inc_i+1)*loss_push+centerR*center_loss
 
 if __name__ == '__main__':
     main()
