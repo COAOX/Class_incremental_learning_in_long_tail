@@ -8,6 +8,12 @@ You may need git bash to run this command
 cd src
 sh download_cifar.sh 
 ```
+## Incremental dataset
+You can use `Cifar100.py` to serialize the cifar-100 dataset to 5 stage and each stage contains 20 class.
+## Long-tail environment
+You may need to define you own function to cut the balanced dataset to imbalanced dataset. 
+<br>
+For me, I use probability function $f(x)=\frac{1}{20^x}$ and $f(x)=\frac{1}{40^x}$ to cut the dataset.
 # Model
 This model implements two kinds of feature extractors: simple implementation and resnet.
 ## Feature Extractor
@@ -38,6 +44,28 @@ You can use command `--pushR ` and `--pullR` to adjust.
  `--pullR` : set the lose rate of `pull` loss used in `train.py -- line:534`
 # How to Run
 Use `Python` command to run this code, like this.
+<br>
+`--nep`: number of epoch default 32
+<br>
+`--batch_size`: size of batch default 
+<br>
+`--Data_file`: the data file you need to train, which could be original cifar data or the long_tail data cut by yourself
+<br>
+`--pushR`: the push loss rate defined in Prototype Distance Distillation
+<br>
+`--pullR`: the pull loss rate defined in Prototype Distance Distillation
+<br>
+`--Bias_epoch`: the number of epoch to train bias layer
+<br>
+`--mix`: to spicify whether use Sample Mix
+<br>
+`--lr`: learning rate
+<br>
+`--lossF`: to spicify the loss function, which is `NCM` or `CrossEntropyLoss`, check in file `prototypical_loss.py--line:164`
+<br>
+Other important parameter you can find in file `parser_util.py`
+<br>
+Command shoule like this.
 ```
 cd src
 python train.py --stage=5 --cuda -nep=55 --batch_size=256 --lossF='NCM'  --Data_file='train_meta'  --pushR=0.0001 --pullR=0.001 --Bias_epoch=0 --mix
