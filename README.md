@@ -31,13 +31,12 @@ Bias Layer defines two parameters which is `alpha` and `beta`, this two paramter
 ## Prototype Distance Distillation
 Experiments show that avoiding the relative position change of `prototype` in feature space helps to avoid `Catastrophic Forgetting`. In this model, we use `push` and `pull` lose to check and balance the special space reconstruction caused by Incremental learning in the training process.
 ___
-<br>
-You can use command `--pushR` and `--pullR` to adjust.
+You can use command `--pushR ` and `--pullR` to adjust.
 <br>
  `--pushR` : set the lose rate of `push` loss used in `train.py -- line:533`
 <br>
  `--pullR` : set the lose rate of `pull` loss used in `train.py -- line:534`
-# Run Model
+# How to Run
 Use `Python` command to run this code, like this.
 ```
 cd src
