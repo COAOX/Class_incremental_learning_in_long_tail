@@ -5,12 +5,6 @@ import torch
 
 class PrototypicalBatchSampler(object):
     '''
-    PrototypicalBatchSampler: yield a batch of indexes at each iteration.
-    Indexes are calculated by keeping in account 'classes_per_it' and 'num_samples',
-    In fact at every iteration the batch indexes will refer to  'num_support' + 'num_query' samples
-    for 'classes_per_it' random classes.
-
-    __len__ returns the number of episodes per epoch (same as 'self.iterations').
     '''
 
     def __init__(self, labels, classes_per_it, num_samples, iterations):
@@ -31,11 +25,7 @@ class PrototypicalBatchSampler(object):
 
         self.classes, self.counts = np.unique(self.labels, return_counts=True)
         self.classes = torch.LongTensor(self.classes)
-
-        # create a matrix, indexes, of dim: classes X max(elements per class)
-        # fill it with nans
-        # for every class c, fill the relative row with the indices samples belonging to c
-        # in numel_per_class we store the number of samples for each class/row
+        
         self.idxs = range(len(self.labels))
         self.indexes = np.empty((len(self.classes), max(self.counts)), dtype=int) * np.nan
         self.indexes = torch.Tensor(self.indexes)

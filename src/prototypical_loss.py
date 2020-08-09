@@ -51,8 +51,6 @@ def euclidean_dist(x, y):
 
 def prototypical_loss(input, target, opt, old_prototypes, inc_i,biasLayer,t_prototypes=None):
     '''
-    Inspired by https://github.com/jakesnell/prototypical-networks/blob/master/protonets/models/few_shot.py
-
     Compute the barycentres by averaging the features of n_support
     samples for each class in target, computes then the distances from each
     samples' features to each one of the barycentres, computes the
